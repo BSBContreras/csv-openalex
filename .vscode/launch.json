@@ -1,0 +1,48 @@
+{
+  "configurations": [
+    {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Launch Main",
+      "program": "${workspaceFolder}/main.py",
+      "args": [
+        "${input:method}",
+        "--record_limit",
+        "${input:record_limit}",
+        "--checkpoint_size",
+        "${input:checkpoint_size}",
+        "--initial_work_id",
+        "${input:initial_work_id}"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "type": "pickString",
+      "id": "method",
+      "description": "Choose the method of collection",
+      "options": [
+        "author",
+        "citation"
+      ]
+    },
+    {
+      "type": "promptString",
+      "id": "record_limit",
+      "description": "Enter the record limit",
+      "default": "1000"
+    },
+    {
+      "type": "promptString",
+      "id": "checkpoint_size",
+      "description": "Enter the checkpoint size",
+      "default": "100"
+    },
+    {
+      "type": "promptString",
+      "id": "initial_work_id",
+      "description": "Enter the initial work ID",
+      "default": "W4398186459"
+    }
+  ]
+}
