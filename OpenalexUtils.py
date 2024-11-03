@@ -2,7 +2,8 @@ import time
 import requests
 
 # URL base da API do OpenAlex
-base_url = "https://api.openalex.org/works"
+works_base_url = "https://api.openalex.org/works"
+authors_base_url = "https://api.openalex.org/authors"
 batch_size = 100
 per_page = 200
 sleep_time = 0.2
@@ -15,7 +16,7 @@ def get_data_from_openalex(work_urls):
         'filter': f"openalex:{'|'.join(work_ids)}",
         'per-page': batch_size
     }
-    response = requests.get(base_url, params=params)
+    response = requests.get(works_base_url, params=params)
     response.raise_for_status()
     return response.json()
 
@@ -32,12 +33,12 @@ def get_author_works(author_urls):
             'per-page': per_page,
             'page': page
         }
-        response = requests.get(base_url, params=params)
+        response = requests.get(works_base_url, params=params)
         response.raise_for_status()
         data = response.json()
         works.extend(data['results'])
 
-        if 'next_page' not in data or not data['next_page']:
+        if page * per_page >= data['meta']['count']:
             break
 
         page += 1
