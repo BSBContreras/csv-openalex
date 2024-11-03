@@ -57,7 +57,7 @@ def write_works_to_csv(filename, works, mode='a'):
 
 
 # Função para escrever dados no arquivo CSV dos autores
-def write_authors_to_csv(filename, works, mode='a'):
+def write_authors_to_csv(filename, works, only_authors=[], mode='a'):
     file_exists = os.path.isfile(filename)
 
     with open(filename, mode, newline='', encoding='utf-8') as csvfile:
@@ -69,14 +69,15 @@ def write_authors_to_csv(filename, works, mode='a'):
 
         for work in works:
             for author in work['authorships']:
-                writer.writerow({
-                    'work_id': work['id'],
-                    'author_id': author['author']['id'],
-                    'author_name': author['author'].get('display_name'),
-                    'author_position': author.get('author_position'),
-                    'is_corresponding': author.get('is_corresponding', False),
-                    'countries': '|'.join(author.get('countries', [])),
-                })
+                if not only_authors or author['author']['id'] in only_authors:
+                    writer.writerow({
+                        'work_id': work['id'],
+                        'author_id': author['author']['id'],
+                        'author_name': author['author'].get('display_name'),
+                        'author_position': author.get('author_position'),
+                        'is_corresponding': author.get('is_corresponding', False),
+                        'countries': '|'.join(author.get('countries', [])),
+                    })
 
 
 # Função para escrever dados no arquivo CSV das citações

@@ -7,7 +7,7 @@ from tqdm import tqdm
 import datetime
 
 from OpenalexCheckpoints import load_checkpoint, save_checkpoint_author_based
-from OpenalexUtils import get_data_from_openalex, get_author_works, batch_size, sleep_time
+from OpenalexUtils import get_authors, get_data_from_openalex, get_author_works, batch_size, sleep_time
 from OpenalexWriter import write_works_to_csv, write_citations_to_csv, \
     write_related_works_to_csv, write_authors_to_csv, write_concepts_to_csv, \
     write_topics_to_csv, write_keywords_to_csv, generate_progress_report
@@ -90,17 +90,18 @@ def main(record_limit, checkpoint_size, initial_work_id):
                     works.append(work)
 
             write_works_to_csv(csv_works_filename, works, mode='a')
-            write_authors_to_csv(csv_authors_filename, works, mode='a')
+            write_authors_to_csv(csv_authors_filename, works, only_authors=batch_ids, mode='a')
             write_citations_to_csv(csv_citations_filename, works, mode='a')
             write_related_works_to_csv(csv_related_works_filename, works, mode='a')
             write_concepts_to_csv(csv_concepts_filename, works, mode='a')
             write_topics_to_csv(csv_topics_filename, works, mode='a')
             write_keywords_to_csv(csv_keywords_filename, works, mode='a')
 
+            authors_count += len(batch_ids)
+
             for work in works:
                 work_visited.add(work['id'])
                 work_counts += 1
-                authors_count += len(work.get('authorships', []))
                 citations_count += len(work.get('referenced_works', []))
                 related_works_count += len(work.get('related_works', []))
                 concepts_count += len(work.get('concepts', []))
