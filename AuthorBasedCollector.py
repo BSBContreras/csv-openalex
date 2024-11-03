@@ -7,7 +7,7 @@ from tqdm import tqdm
 import datetime
 
 from OpenalexCheckpoints import load_checkpoint, save_checkpoint_author_based
-from OpenalexUtils import get_authors, get_data_from_openalex, get_author_works, batch_size, sleep_time
+from OpenalexUtils import get_data_from_openalex, get_author_works, batch_size, sleep_time
 from OpenalexWriter import write_works_to_csv, write_citations_to_csv, \
     write_related_works_to_csv, write_authors_to_csv, write_concepts_to_csv, \
     write_topics_to_csv, write_keywords_to_csv, generate_progress_report
