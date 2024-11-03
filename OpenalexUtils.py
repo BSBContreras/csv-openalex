@@ -49,6 +49,34 @@ def get_author_works(author_urls):
     return works
 
 
+# Função para obter informações de um autor
+def get_authors(author_urls):
+    author_ids = [author_url.split('/')[-1] for author_url in author_urls]
+    authors = []
+    page = 1
+
+    while True:
+        params = {
+            'filter': f"openalex:{'|'.join(author_ids)}",
+            'per-page': per_page,
+            'page': page
+        }
+        response = requests.get(authors_base_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        authors.extend(data['results'])
+
+        if page * per_page >= data['meta']['count']:
+            break
+
+        page += 1
+
+        # Espera entre as requisições para não sobrecarregar a API
+        time.sleep(sleep_time)
+
+    return authors
+
+
 def parse_abstract_inverted_index(inverted_index):
     if inverted_index is None:
         return ''
