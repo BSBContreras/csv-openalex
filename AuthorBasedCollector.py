@@ -12,12 +12,13 @@ from OpenalexWriter import write_works_to_csv, write_citations_to_csv, \
     write_related_works_to_csv, write_authors_to_csv, write_concepts_to_csv, \
     write_topics_to_csv, write_keywords_to_csv, generate_progress_report
 
-csv_base_folder = 'author_based_database'''
 
 def main(record_limit, checkpoint_size, initial_work_id):
     print(f"Record limit: {record_limit}")
     print(f"Checkpoint size: {checkpoint_size}")
     print(f"Initial work ID: {initial_work_id}")
+    
+    csv_base_folder = f'{initial_work_id}_author_based_database'
 
     if not os.path.exists(csv_base_folder):
         os.makedirs(csv_base_folder)
