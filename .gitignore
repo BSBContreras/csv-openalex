@@ -1,5 +1,5 @@
 .venv/
 *citations_based_database/
 *author_based_database/
-*author_limit_based_database/
+*author_limit_database/
 __pycache__/
