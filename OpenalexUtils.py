@@ -5,7 +5,7 @@ from tqdm import tqdm
 # URL base da API do OpenAlex
 works_base_url = "https://api.openalex.org/works"
 authors_base_url = "https://api.openalex.org/authors"
-batch_size = 100
+batch_size = 50  # Reduzido levemente para evitar erros de URL muito longa em filtros
 per_page = 200
 sleep_time = 0.2
 
@@ -21,8 +21,11 @@ def get_data_works_from_openalex(work_urls: list[str]) -> dict:
 
 def get_data_authors_from_openalex(author_urls: list[str]) -> dict:
     """Get authors from OpenAlex API."""
+    # Garante que pegamos apenas o ID, caso venha a URL completa
     author_ids = [author_url.split("/")[-1] for author_url in author_urls]
-    params = {"filter": f"openalex:{'|'.join(author_ids)}", "per-page": batch_size}
+
+    # OpenAlex pode falhar se a URL do filtro for muito longa, então é bom chamar essa função com lotes (chunks)
+    params = {"filter": f"openalex:{'|'.join(author_ids)}", "per-page": len(author_ids)}
     response = requests.get(authors_base_url, params=params)
     response.raise_for_status()
     return response.json()
@@ -49,7 +52,12 @@ def get_author_works(author_urls: list[str]) -> list[dict]:
     works = []
     cursor = "*"
 
-    pbar = tqdm(total=1, leave=False, desc="Fetching author")
+    # Descrição dinâmica para saber qual autor está sendo baixado se for apenas 1
+    desc = "Fetching works"
+    if len(author_ids) == 1:
+        desc = f"Fetching works for {author_ids[0]}"
+
+    pbar = tqdm(total=1, leave=False, desc=desc)
 
     while True:
         params = {
@@ -57,21 +65,25 @@ def get_author_works(author_urls: list[str]) -> list[dict]:
             "per-page": per_page,
             "cursor": cursor,
         }
-        response = requests.get(works_base_url, params=params)
-        response.raise_for_status()
-        data = response.json()
+        try:
+            response = requests.get(works_base_url, params=params)
+            response.raise_for_status()
+            data = response.json()
 
-        pbar.total = data["meta"]["count"]
-        pbar.update(len(data["results"]))
-        works.extend(data["results"])
+            pbar.total = data["meta"]["count"]
+            pbar.update(len(data["results"]))
+            works.extend(data["results"])
 
-        if not data["meta"]["next_cursor"]:
+            if not data["meta"]["next_cursor"]:
+                break
+
+            cursor = data["meta"]["next_cursor"]
+            time.sleep(sleep_time)
+
+        except requests.exceptions.RequestException as e:
+            print(f"\nErro na requisição: {e}")
+            time.sleep(1)  # Espera um pouco antes de tentar de novo ou sair
             break
-
-        cursor = data["meta"]["next_cursor"]
-
-        # Espera entre as requisições para não sobrecarregar a API
-        time.sleep(sleep_time)
 
     pbar.close()
     return works

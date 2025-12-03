@@ -6,207 +6,296 @@ from OpenalexUtils import parse_abstract_inverted_index
 
 
 # Função para escrever dados no arquivo CSV dos trabalhos
-def write_works_to_csv(filename, works, mode='a'):
+def write_works_to_csv(filename, works, mode="a"):
     file_exists = os.path.isfile(filename)
 
-    with open(filename, mode, newline='', encoding='utf-8') as csvfile:
+    with open(filename, mode, newline="", encoding="utf-8") as csvfile:
         fieldnames = [
-            'id',
-            'title',
-            'abstract',
-            'doi',
-            'publication_date',
-            'cited_by_count',
-            'language',
-            'type',
-            'fwci',
-            'open_access',
-            'has_fulltext',
-            'is_retracted',
-            'is_paratext',
-            'locations_count',
-            'countries_distinct_count',
-            'institutions_distinct_count',
-            'referenced_works_count'
+            "id",
+            "title",
+            "abstract",
+            "doi",
+            "publication_date",
+            "cited_by_count",
+            "language",
+            "type",
+            "fwci",
+            "open_access",
+            "has_fulltext",
+            "is_retracted",
+            "is_paratext",
+            "locations_count",
+            "countries_distinct_count",
+            "institutions_distinct_count",
+            "referenced_works_count",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        if not file_exists or mode == 'w':
+        if not file_exists or mode == "w":
             writer.writeheader()
 
         for work in works:
-            writer.writerow({
-                'id': work.get('id'),
-                'title': work.get('title'),
-                'abstract': parse_abstract_inverted_index(work.get('abstract_inverted_index', {})),
-                'doi': work.get('doi'),
-                'publication_date': work.get('publication_date'),
-                'cited_by_count': work.get('cited_by_count', 0),
-                'language': work.get('language'),
-                'type': work.get('type'),
-                'fwci': work.get('fwci', 0),
-                'open_access': work['open_access'].get('is_oa', False),
-                'has_fulltext': work.get('has_fulltext', False),
-                'is_retracted': work.get('is_retracted', False),
-                'is_paratext': work.get('is_paratext', False),
-                'locations_count': work.get('locations_count', 0),
-                'countries_distinct_count': work.get('countries_distinct_count', 0),
-                'institutions_distinct_count': work.get('institutions_distinct_count', 0),
-                'referenced_works_count': work.get('referenced_works_count', 0),
-            })
+            # Tratamento seguro para open_access que pode ser None ou dict
+            oa_status = False
+            if work.get("open_access"):
+                oa_status = work["open_access"].get("is_oa", False)
+
+            writer.writerow(
+                {
+                    "id": work.get("id"),
+                    "title": work.get("title"),
+                    "abstract": parse_abstract_inverted_index(
+                        work.get("abstract_inverted_index", {})
+                    ),
+                    "doi": work.get("doi"),
+                    "publication_date": work.get("publication_date"),
+                    "cited_by_count": work.get("cited_by_count", 0),
+                    "language": work.get("language"),
+                    "type": work.get("type"),
+                    "fwci": work.get("fwci", 0),
+                    "open_access": oa_status,
+                    "has_fulltext": work.get("has_fulltext", False),
+                    "is_retracted": work.get("is_retracted", False),
+                    "is_paratext": work.get("is_paratext", False),
+                    "locations_count": work.get("locations_count", 0),
+                    "countries_distinct_count": work.get("countries_distinct_count", 0),
+                    "institutions_distinct_count": work.get(
+                        "institutions_distinct_count", 0
+                    ),
+                    "referenced_works_count": work.get("referenced_works_count", 0),
+                }
+            )
 
 
-# Função para escrever dados no arquivo CSV dos autores
-def write_authors_to_csv(filename, works, only_authors=[], mode='a'):
+# Função para escrever a relação Trabalho <-> Autor
+def write_authors_to_csv(filename, works, only_authors=[], mode="a"):
     file_exists = os.path.isfile(filename)
 
-    with open(filename, mode, newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['work_id', 'author_id', 'author_name', 'author_position', 'is_corresponding', 'countries']
+    with open(filename, mode, newline="", encoding="utf-8") as csvfile:
+        fieldnames = [
+            "work_id",
+            "author_id",
+            "author_name",
+            "author_position",
+            "is_corresponding",
+            "countries",
+        ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        if not file_exists or mode == 'w':
+        if not file_exists or mode == "w":
             writer.writeheader()
 
         for work in works:
-            for author in work['authorships']:
-                if not only_authors or author['author']['id'] in only_authors:
-                    writer.writerow({
-                        'work_id': work['id'],
-                        'author_id': author['author']['id'],
-                        'author_name': author['author'].get('display_name'),
-                        'author_position': author.get('author_position'),
-                        'is_corresponding': author.get('is_corresponding', False),
-                        'countries': '|'.join(author.get('countries', [])),
-                    })
+            for author in work.get("authorships", []):
+                # Verificação de segurança se author['author'] existe
+                if not author.get("author"):
+                    continue
+
+                if not only_authors or author["author"]["id"] in only_authors:
+                    writer.writerow(
+                        {
+                            "work_id": work["id"],
+                            "author_id": author["author"]["id"],
+                            "author_name": author["author"].get("display_name"),
+                            "author_position": author.get("author_position"),
+                            "is_corresponding": author.get("is_corresponding", False),
+                            "countries": "|".join(author.get("countries", [])),
+                        }
+                    )
+
+
+# NOVA FUNÇÃO: Escrever metadados dos Autores Únicos
+def write_unique_authors_metadata(filename, authors_data, mode="a"):
+    file_exists = os.path.isfile(filename)
+
+    with open(filename, mode, newline="", encoding="utf-8") as csvfile:
+        fieldnames = [
+            "id",
+            "display_name",
+            "works_count",
+            "cited_by_count",
+            "h_index",
+            "i10_index",
+            "last_known_institution",
+            "country_code",
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        if not file_exists or mode == "w":
+            writer.writeheader()
+
+        for author in authors_data:
+            # Extraindo instituição mais recente
+            last_inst_name = ""
+            country_code = ""
+
+            # OpenAlex v2 structure for affiliations
+            affiliations = author.get("affiliations", [])
+            if affiliations:
+                # Pega a primeira afiliação (geralmente a mais recente/relevante)
+                inst = affiliations[0].get("institution")
+                if inst:
+                    last_inst_name = inst.get("display_name", "")
+                    country_code = inst.get("country_code", "")
+
+            # Stats summaries
+            summary = author.get("summary_stats", {})
+
+            writer.writerow(
+                {
+                    "id": author.get("id"),
+                    "display_name": author.get("display_name"),
+                    "works_count": author.get("works_count", 0),
+                    "cited_by_count": author.get("cited_by_count", 0),
+                    "h_index": summary.get("h_index", 0),
+                    "i10_index": summary.get("i10_index", 0),
+                    "last_known_institution": last_inst_name,
+                    "country_code": country_code,
+                }
+            )
 
 
 # Função para escrever dados no arquivo CSV das citações
-def write_citations_to_csv(filename, works, mode='a'):
+def write_citations_to_csv(filename, works, mode="a"):
     file_exists = os.path.isfile(filename)
 
-    with open(filename, mode, newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['work_id', 'cited_work_id']
+    with open(filename, mode, newline="", encoding="utf-8") as csvfile:
+        fieldnames = ["work_id", "cited_work_id"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        if not file_exists or mode == 'w':
+        if not file_exists or mode == "w":
             writer.writeheader()
 
         for work in works:
-            for cited_work in work.get('referenced_works', []):
-                writer.writerow({
-                    'work_id': work['id'],
-                    'cited_work_id': cited_work
-                })
+            for cited_work in work.get("referenced_works", []):
+                writer.writerow({"work_id": work["id"], "cited_work_id": cited_work})
 
 
 # Função para escrever dados no arquivo CSV dos trabalhos relacionados
-def write_related_works_to_csv(filename, works, mode='a'):
+def write_related_works_to_csv(filename, works, mode="a"):
     file_exists = os.path.isfile(filename)
 
-    with open(filename, mode, newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['work_id', 'related_work_id']
+    with open(filename, mode, newline="", encoding="utf-8") as csvfile:
+        fieldnames = ["work_id", "related_work_id"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        if not file_exists or mode == 'w':
+        if not file_exists or mode == "w":
             writer.writeheader()
 
         for work in works:
-            for related_work in work.get('related_works', []):
-                writer.writerow({
-                    'work_id': work['id'],
-                    'related_work_id': related_work
-                })
+            for related_work in work.get("related_works", []):
+                writer.writerow(
+                    {"work_id": work["id"], "related_work_id": related_work}
+                )
 
 
 # Função para escrever dados no arquivo CSV dos conceitos
-def write_concepts_to_csv(filename, works, mode='a'):
+def write_concepts_to_csv(filename, works, mode="a"):
     file_exists = os.path.isfile(filename)
 
-    with open(filename, mode, newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['work_id', 'concept_id', 'concept_name', 'wikidata', 'level', 'score']
+    with open(filename, mode, newline="", encoding="utf-8") as csvfile:
+        fieldnames = [
+            "work_id",
+            "concept_id",
+            "concept_name",
+            "wikidata",
+            "level",
+            "score",
+        ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        if not file_exists or mode == 'w':
+        if not file_exists or mode == "w":
             writer.writeheader()
 
         for work in works:
-            for concept in work['concepts']:
-                writer.writerow({
-                    'work_id': work['id'],
-                    'concept_id': concept.get('id'),
-                    'concept_name': concept.get('display_name'),
-                    'wikidata': concept.get('wikidata'),
-                    'level': concept.get('level', 0),
-                    'score': concept.get('score', 0),
-                })
+            for concept in work.get("concepts", []):
+                writer.writerow(
+                    {
+                        "work_id": work["id"],
+                        "concept_id": concept.get("id"),
+                        "concept_name": concept.get("display_name"),
+                        "wikidata": concept.get("wikidata"),
+                        "level": concept.get("level", 0),
+                        "score": concept.get("score", 0),
+                    }
+                )
 
 
 # Função para escrever dados no arquivo CSV dos tópicos
-def write_topics_to_csv(filename, works, mode='a'):
+def write_topics_to_csv(filename, works, mode="a"):
     file_exists = os.path.isfile(filename)
 
-    with open(filename, mode, newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['work_id', 'topic_id', 'topic_name', 'score']
+    with open(filename, mode, newline="", encoding="utf-8") as csvfile:
+        fieldnames = ["work_id", "topic_id", "topic_name", "score"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        if not file_exists or mode == 'w':
+        if not file_exists or mode == "w":
             writer.writeheader()
 
         for work in works:
-            for topic in work['topics']:
-                writer.writerow({
-                    'work_id': work['id'],
-                    'topic_id': topic.get('id'),
-                    'topic_name': topic.get('display_name'),
-                    'score': topic.get('score', 0),
-                })
+            topics = work.get("topics", [])
+            # As vezes topics pode ser None na API
+            if topics:
+                for topic in topics:
+                    writer.writerow(
+                        {
+                            "work_id": work["id"],
+                            "topic_id": topic.get("id"),
+                            "topic_name": topic.get("display_name"),
+                            "score": topic.get("score", 0),
+                        }
+                    )
 
 
 # Função para escrever dados no arquivo CSV das palavras-chave
-def write_keywords_to_csv(filename, works, mode='a'):
+def write_keywords_to_csv(filename, works, mode="a"):
     file_exists = os.path.isfile(filename)
 
-    with open(filename, mode, newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['work_id', 'keyword_id', 'keyword_name', 'score']
+    with open(filename, mode, newline="", encoding="utf-8") as csvfile:
+        fieldnames = ["work_id", "keyword_id", "keyword_name", "score"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        if not file_exists or mode == 'w':
+        if not file_exists or mode == "w":
             writer.writeheader()
 
         for work in works:
-            for keyword in work['keywords']:
-                writer.writerow({
-                    'work_id': work['id'],
-                    'keyword_id': keyword.get('id'),
-                    'keyword_name': keyword.get('display_name'),
-                    'score': keyword.get('score', 0),
-                })
+            keywords = work.get("keywords", [])
+            if keywords:
+                for keyword in keywords:
+                    writer.writerow(
+                        {
+                            "work_id": work["id"],
+                            "keyword_id": keyword.get("id"),
+                            "keyword_name": keyword.get("display_name"),
+                            "score": keyword.get("score", 0),
+                        }
+                    )
 
 
 # Função para gerar relatório de progresso
 def generate_progress_report(
-        start_time,
-        total_count,
-        authors_count,
-        citations_count,
-        related_works_count,
-        concepts_count,
-        topics_count,
-        keywords_count,
-        report_file
+    start_time,
+    total_count,
+    authors_count,
+    citations_count,
+    related_works_count,
+    concepts_count,
+    topics_count,
+    keywords_count,
+    report_file,
 ):
     file_exists = os.path.isfile(report_file)
-    with open(report_file, 'a', newline='', encoding='utf-8') as csvfile:
+    with open(report_file, "a", newline="", encoding="utf-8") as csvfile:
         fieldnames = [
-            'timestamp',
-            'total_count',
-            'authors_count',
-            'citations_count',
-            'related_works_count',
-            'concepts_count',
-            'topics_count',
-            'keywords_count',
-            'elapsed_time'
+            "timestamp",
+            "total_count",
+            "authors_count",
+            "citations_count",
+            "related_works_count",
+            "concepts_count",
+            "topics_count",
+            "keywords_count",
+            "elapsed_time",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -214,14 +303,16 @@ def generate_progress_report(
             writer.writeheader()
 
         elapsed_time = datetime.datetime.now() - start_time
-        writer.writerow({
-            'timestamp': datetime.datetime.now().isoformat(),
-            'total_count': total_count,
-            'authors_count': authors_count,
-            'citations_count': citations_count,
-            'related_works_count': related_works_count,
-            'concepts_count': concepts_count,
-            'topics_count': topics_count,
-            'keywords_count': keywords_count,
-            'elapsed_time': str(elapsed_time)
-        })
+        writer.writerow(
+            {
+                "timestamp": datetime.datetime.now().isoformat(),
+                "total_count": total_count,
+                "authors_count": authors_count,
+                "citations_count": citations_count,
+                "related_works_count": related_works_count,
+                "concepts_count": concepts_count,
+                "topics_count": topics_count,
+                "keywords_count": keywords_count,
+                "elapsed_time": str(elapsed_time),
+            }
+        )
