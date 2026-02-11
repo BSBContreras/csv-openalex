@@ -104,7 +104,7 @@ def write_authors_to_csv(filename, works, only_authors=[], mode="a"):
                     )
 
 
-# NOVA FUNÇÃO: Escrever metadados dos Autores Únicos
+# Função para escrever metadados dos Autores Únicos
 def write_unique_authors_metadata(filename, authors_data, mode="a"):
     file_exists = os.path.isfile(filename)
 
