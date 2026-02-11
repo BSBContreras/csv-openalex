@@ -79,6 +79,7 @@ def write_authors_to_csv(filename, works, only_authors=[], mode="a"):
             "author_position",
             "is_corresponding",
             "countries",
+            "institution_ids",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -92,6 +93,12 @@ def write_authors_to_csv(filename, works, only_authors=[], mode="a"):
                     continue
 
                 if not only_authors or author["author"]["id"] in only_authors:
+                    # Extrair IDs das instituições
+                    institution_ids = []
+                    for inst in author.get("institutions", []):
+                        if inst.get("id"):
+                            institution_ids.append(inst["id"])
+
                     writer.writerow(
                         {
                             "work_id": work["id"],
@@ -100,8 +107,40 @@ def write_authors_to_csv(filename, works, only_authors=[], mode="a"):
                             "author_position": author.get("author_position"),
                             "is_corresponding": author.get("is_corresponding", False),
                             "countries": "|".join(author.get("countries", [])),
+                            "institution_ids": "|".join(institution_ids),
                         }
                     )
+
+
+# Função para escrever metadados das Instituições Únicas
+def write_unique_institutions_metadata(filename, institutions_data, mode="a"):
+    file_exists = os.path.isfile(filename)
+
+    with open(filename, mode, newline="", encoding="utf-8") as csvfile:
+        fieldnames = [
+            "id",
+            "display_name",
+            "country_code",
+            "type",
+            "ror",
+            "lineage",
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        if not file_exists or mode == "w":
+            writer.writeheader()
+
+        for inst in institutions_data:
+            writer.writerow(
+                {
+                    "id": inst.get("id"),
+                    "display_name": inst.get("display_name", ""),
+                    "country_code": inst.get("country_code", ""),
+                    "type": inst.get("type", ""),
+                    "ror": inst.get("ror", ""),
+                    "lineage": "|".join(inst.get("lineage", [])),
+                }
+            )
 
 
 # Função para escrever metadados dos Autores Únicos

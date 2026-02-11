@@ -5,6 +5,7 @@ from tqdm import tqdm
 # URL base da API do OpenAlex
 works_base_url = "https://api.openalex.org/works"
 authors_base_url = "https://api.openalex.org/authors"
+institutions_base_url = "https://api.openalex.org/institutions"
 batch_size = 50  # Reduzido levemente para evitar erros de URL muito longa em filtros
 per_page = 200
 sleep_time = 0.2
@@ -27,6 +28,18 @@ def get_data_authors_from_openalex(author_urls: list[str]) -> dict:
     # OpenAlex pode falhar se a URL do filtro for muito longa, então é bom chamar essa função com lotes (chunks)
     params = {"filter": f"openalex:{'|'.join(author_ids)}", "per-page": len(author_ids)}
     response = requests.get(authors_base_url, params=params)
+    response.raise_for_status()
+    return response.json()
+
+
+def get_data_institutions_from_openalex(institution_urls: list[str]) -> dict:
+    """Get institutions from OpenAlex API."""
+    # Garante que pegamos apenas o ID, caso venha a URL completa
+    institution_ids = [inst_url.split("/")[-1] for inst_url in institution_urls]
+
+    # OpenAlex pode falhar se a URL do filtro for muito longa, então é bom chamar essa função com lotes (chunks)
+    params = {"filter": f"openalex:{'|'.join(institution_ids)}", "per-page": len(institution_ids)}
+    response = requests.get(institutions_base_url, params=params)
     response.raise_for_status()
     return response.json()
 

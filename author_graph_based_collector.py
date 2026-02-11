@@ -10,6 +10,7 @@ def get_files(output_dir):
         "works": f"{output_dir}/works.csv",
         "authorships": f"{output_dir}/authorships.csv",
         "unique_authors": f"{output_dir}/unique_authors_metadata.csv",
+        "unique_institutions": f"{output_dir}/unique_institutions_metadata.csv",
         "citations": f"{output_dir}/citations.csv",
         "concepts": f"{output_dir}/concepts.csv",
         "topics": f"{output_dir}/topics.csv",
@@ -63,6 +64,7 @@ def run_bfs_collection(max_authors_to_collect, output_dir, initial_author_id):
     collected_authors_ids = {start_id}
     processed_authors_ids = set()
     seen_works_ids = set()
+    collected_institution_ids = set()
 
     print("--- Iniciando Coleta BFS ---")
     print(f"Autor Inicial: {start_id}")
@@ -112,6 +114,11 @@ def run_bfs_collection(max_authors_to_collect, output_dir, initial_author_id):
                             collected_authors_ids.add(auth_id)
                             queue.append(auth_id)
 
+                    # Coletar IDs de instituições
+                    for inst in authorship.get("institutions", []):
+                        if inst.get("id"):
+                            collected_institution_ids.add(inst["id"])
+
         if new_works_buffer:
             print(f"  > Salvando {len(new_works_buffer)} novos trabalhos...")
             OpenalexWriter.write_works_to_csv(FILES["works"], new_works_buffer)
@@ -160,6 +167,36 @@ def run_bfs_collection(max_authors_to_collect, output_dir, initial_author_id):
 
         except Exception as e:
             print(f"Erro ao baixar lote de autores: {e}")
+
+    # Baixar metadados das instituições coletadas
+    if collected_institution_ids:
+        print(
+            f"\nBaixando metadados detalhados para {len(collected_institution_ids)} instituições coletadas..."
+        )
+
+        all_institutions_list = list(collected_institution_ids)
+        chunk_size = 50
+
+        total_chunks = (len(all_institutions_list) // chunk_size) + 1
+
+        for i in range(0, len(all_institutions_list), chunk_size):
+            chunk = all_institutions_list[i : i + chunk_size]
+            print(
+                f"Baixando lote {i//chunk_size + 1}/{total_chunks} ({len(chunk)} instituições)..."
+            )
+
+            try:
+                data = OpenalexUtils.get_data_institutions_from_openalex(chunk)
+                results = data.get("results", [])
+
+                OpenalexWriter.write_unique_institutions_metadata(
+                    FILES["unique_institutions"], results
+                )
+
+                time.sleep(0.2)
+
+            except Exception as e:
+                print(f"Erro ao baixar lote de instituições: {e}")
 
     print("\nProcesso Completo com Sucesso!")
 

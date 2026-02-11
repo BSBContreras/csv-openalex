@@ -1,5 +1,6 @@
 .venv/
 output_data/
+*author_graph_database/
 *citations_based_database/
 *author_based_database/
 *author_limit_database/
