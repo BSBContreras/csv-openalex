@@ -1,5 +1,10 @@
 .venv/
+output_data/
 *citations_based_database/
 *author_based_database/
 *author_limit_database/
 __pycache__/
+
+generate_commit_dates.py
+git_commit_with_date.py
+commit_dates.txt
